@@ -108,22 +108,12 @@
 
   <!-- Cover render (lego or your own object) -->
   <div style="margin:20px 0; text-align:center;">
-    <img src="images/0_cover_lego.png" alt="NeRF Lego Novel View" style="max-width:75%;">
+    <img src="images/2_4_lego_spin_gif.gif" alt="NeRF Lego Novel View" style="max-width:75%;">
   </div>
 
   <h2>Overview</h2>
   <p>
-    In this project, I implemented a Neural Radiance Field (NeRF) pipeline from scratch using PyTorch.
-    The assignment is split into three major components:
-  </p>
-  <ul>
-    <li><b>Part 0:</b> Calibrate a real camera with ArUco tags, estimate camera poses for a custom object, and package a dataset for NeRF training.</li>
-    <li><b>Part 1:</b> Fit a 2D neural field to an image using an MLP with sinusoidal positional encoding, exploring how architecture and frequency affect reconstruction.</li>
-    <li><b>Part 2:</b> Implement the full NeRF pipeline on the Lego dataset (rays, sampling, neural radiance field, volume rendering), then train and render a NeRF on my own captured object.</li>
-  </ul>
-  <p>
-    Below I describe my implementation details, design decisions, and show qualitative + quantitative results
-    (PSNR curves, training loss, and novel-view renderings).
+    In this project, I implemented a full Neural Radiance Field (NeRF) pipeline from scratch, starting from camera calibration and dataset creation all the way to novel-view synthesis. I first fit simple coordinate-based MLPs to 2D images to understand positional encoding and network capacity, then extended this framework to 3D by generating rays, sampling points, and performing volumetric rendering on the Lego multi-view dataset. Finally, I applied the same pipeline to my own captured scene, analyzing how data quality, camera coverage, and hyperparameters affect reconstruction quality and the realism of the resulting fly-throughs.
   </p>
 
   <!-- ================== PART 0 ================== -->
@@ -135,7 +125,7 @@
     For each calibration image, I detected the tags, picked the largest one,
     and used its four corners and the known physical tag size to collect 2D–3D correspondences.
     I then ran cv2.calibrateCamera to estimate the intrinsic matrix K and distortion coefficients,
-    and saved them to intrinsics.npz (with an undistortion preview to sanity-check the result).
+    and saved them to intrinsics.npz, with an undistortion preview to sanity-check the result.
   </p>
   
   <table>
@@ -143,13 +133,13 @@
       <td>
         <figure>
           <img src="images/dbg_corners_0.jpg" alt="Detected ArUco corners in calibration image 0">
-          <figcaption>Detected ArUco corners in one calibration image.</figcaption>
+          <figcaption>detected ArUco corners in one calibration image</figcaption>
         </figure>
       </td>
       <td>
         <figure>
           <img src="images/dbg_corners_1.jpg" alt="Detected ArUco corners in calibration image 1">
-          <figcaption>Detected corners in a different viewpoint.</figcaption>
+          <figcaption>detected corners in a different viewpoint</figcaption>
         </figure>
       </td>
     </tr>
@@ -158,14 +148,14 @@
   <figure>
     <img src="images/dbg_bad_reproj.jpg" alt="Example of bad reprojection during calibration">
     <figcaption>
-      Debug visualization of a bad reprojection case; I used examples like this to refine corner
-      detection and filter out problematic frames.
+      debug visualization of a bad reprojection case
     </figcaption>
   </figure>
   
   <h3>0.2 Capturing a 3D Object Scan</h3>
   <p>
-    For my own NeRF scene, I photographed a Pokémon Legends: ZA game case placed next to a printed ArUco tag.
+    For my own NeRF scene, I photographed two separate scenes (and ended up completing the project with the Nailong scene).
+    I photographed a Pokémon Legends: ZA game case placed next to a printed ArUco tag, and a Nailong toy.
     I took a small set of images from different viewpoints while trying to keep the tag visible,
     the object roughly centered, and the camera settings consistent with the calibration step (same device and focal length).
   </p>
@@ -187,13 +177,13 @@
       <td>
         <figure>
           <img src="images/02_ss1.png" alt="Viser screenshot of camera frustums, view 1">
-          <figcaption>Viser visualization of recovered camera frustums (view 1).</figcaption>
+          <figcaption>viser visualization of pokemon scene.</figcaption>
         </figure>
       </td>
       <td>
         <figure>
           <img src="images/02_ss3.png" alt="Viser screenshot of camera frustums, view 2">
-          <figcaption>Viser visualization from a different viewpoint (view 2).</figcaption>
+          <figcaption>viser visualization from a pokemon scene 2.</figcaption>
         </figure>
       </td>
     </tr>
@@ -201,13 +191,13 @@
       <td>
         <figure>
           <img src="images/02_new_render.png" alt="Viser screenshot of camera frustums, view 1">
-          <figcaption>Viser visualization of recovered camera frustums (view 1).</figcaption>
+          <figcaption>viser visualization of nailong scene.</figcaption>
         </figure>
       </td>
       <td>
         <figure>
           <img src="images/02_new_render_2.png" alt="Viser screenshot of camera frustums, view 2">
-          <figcaption>Viser visualization from a different viewpoint (view 2).</figcaption>
+          <figcaption>viser visualization of nailong scene 2.</figcaption>
         </figure>
       </td>
     </tr>
@@ -417,8 +407,7 @@
 </figure>
 
   
-<!-- ================== PART 2 ================== -->
-<h2 id="part2">Part 2: NeRF on 3D Scenes</h2>
+<h2 id="part2">Part 2: Fit a Neural Radiance Field from Multi-view Images</h2>
 
 <h3>2.1 Ray Generation from Cameras</h3>
 <p>
@@ -471,17 +460,11 @@
   <li>For each selected pixel, I call <em>pixel_to_ray</em> to get a ray origin and direction and
       also return the ground-truth RGB from the image.</li>
 </ul>
-<p>
-  To sanity-check my implementation, I used the provided <em>viser</em>-based script to visualize
-  all camera frustums, a small batch of rays sampled from a single camera, and the sample points
-  along those rays. The figure below shows that the rays correctly emanate from one camera and
-  intersect the region where the Lego object lives.
-</p>
 
 <figure>
   <img src="images/2_3_rays.png" alt="Visualization of cameras, rays, and samples using viser">
   <figcaption>
-    Cameras, sampled rays, and sample points for the Lego training set, visualized with viser.
+    Cameras, sampled rays, and sample points for the Lego training set visualized with viser.
   </figcaption>
 </figure>
 
@@ -501,9 +484,7 @@ colors, and I track performance using PSNR on a held-out validation set.
        alt="Visualization of rays and samples"
        style="max-width: 70%;">
   <figcaption>
-    Figure 2.4.1: Visualization of camera rays and sampled 3D points. This
-    confirms that rays originate from the correct camera poses and are sampled
-    within the specified near/far range.
+    visualization of camera rays and sampled 3D points
   </figcaption>
 </figure>
 
@@ -512,17 +493,11 @@ colors, and I track performance using PSNR on a held-out validation set.
        alt="PSNR curve on the validation set"
        style="max-width: 70%;">
   <figcaption>
-    Figure 2.4.2: PSNR on the validation set over training iterations. The
-    upward trend shows that the reconstruction quality improves as training
-    progresses.
+    PSNR on the validation set over training iterations
   </figcaption>
 </figure>
 
 <h4>Training Progression</h4>
-<p>
-Below are rendered validation views at different training steps. Over time, the
-Lego model becomes less noisy, and its geometry and texture become clearer.
-</p>
 
 <table style="border-collapse: collapse; text-align: center;">
   <tr>
@@ -548,10 +523,6 @@ Lego model becomes less noisy, and its geometry and texture become clearer.
     </td>
   </tr>
   <tr>
-    <td colspan="3" style="padding: 4px; font-size: 0.9em;">
-      Early in training, the rendering is noisy and blurry, but the rough
-      silhouette of the Lego can already be made out.
-    </td>
   </tr>
   <tr>
     <th style="padding: 4px;">Step 1500</th>
@@ -573,7 +544,7 @@ Lego model becomes less noisy, and its geometry and texture become clearer.
   </tr>
   <tr>
     <td colspan="3" style="padding: 4px; font-size: 0.9em;">
-      As training continues, the shape, edges, and colors become much sharper,
+      As training progresses, the shape, edges, and colors become much sharper,
       and the Lego figure is clearly recognizable with fewer artifacts.
     </td>
   </tr>
@@ -584,7 +555,7 @@ Lego model becomes less noisy, and its geometry and texture become clearer.
        alt="Spherical Lego NeRF rendering"
        style="max-width: 60%;">
   <figcaption>
-    Lego GIF
+    Spherical rendering video of the Lego
   </figcaption>
 </figure>
 
@@ -600,13 +571,13 @@ Lego model becomes less noisy, and its geometry and texture become clearer.
     \[
       T_i = \prod_{j &lt; i} (1 - \alpha_j).
     \]
-    In code I form <i>one_minus_a = 1 - alpha</i>, prepend a column of ones, and call <i>torch.cumprod</i>,
+    I formed <i>one_minus_a = 1 - alpha</i>, prepended a column of ones, and called <i>torch.cumprod</i>,
     then drop the last column to align \(T\) with the samples. The weights are
     <i>weights = alpha * T</i>, and the final color is the weighted sum
   </p>
   <pre><code>rgb_map = (weights[..., None] * rgbs).sum(dim=1)</code></pre>
   <p>
-    I also compute the accumulated opacity <i>acc = weights.sum(dim=1, keepdim=True)</i> and optionally composite onto a white
+    Then, I computed the accumulated opacity <i>acc = weights.sum(dim=1, keepdim=True)</i> and optionally composite onto a white
     background as <i>rgb_map + (1 - acc)</i> when <i>white_bg=True</i>. I verified correctness using the staff’s test snippet
     with random <i>sigmas</i> and <i>rgbs</i>; my <i>volrend</i> output matches the reference tensor within <i>1e-4</i> tolerance.
   </p>
@@ -616,7 +587,7 @@ Lego model becomes less noisy, and its geometry and texture become clearer.
   I struggled quite a bit with this one, ending up with an imperfect render.
   I trained a NeRF on my own captured dataset of a small yellow
   Nailong figurine placed on a table, and realized that I made a mistake with the color channels.
-  However, I moved along I followed the full pipeline used earlier: ArUco-based camera calibration, pose estimation for each image, undistortion
+  However, I moved along and followed the full pipeline used earlier: ArUco-based camera calibration, pose estimation for each image, undistortion
   and resizing, and finally packaging everything into a NeRF-compatible dataset.
 </p>
 
@@ -641,12 +612,12 @@ Lego model becomes less noisy, and its geometry and texture become clearer.
 
 <figure>
   <img src="images/2_6_train_loss_curve.png" alt="Training loss vs. iteration plot for my own dataset." style="max-width: 100%; height: auto;">
-  <figcaption>Training loss vs. iteration for my own Nailong dataset.</figcaption>
+  <figcaption>Training loss vs. iteration for my own dataset</figcaption>
 </figure>
 
 <figure>
   <img src="images/2_6_val_psnr_curve.png" alt="Validation PSNR vs. iteration plot for my own dataset." style="max-width: 100%; height: auto;">
-  <figcaption>Validation PSNR vs. iteration for my own dataset.</figcaption>
+  <figcaption>Validation PSNR vs. iteration for my own dataset</figcaption>
 </figure>
 
 <h3>Intermediate Renders and Final GIF</h3>
@@ -660,7 +631,7 @@ Lego model becomes less noisy, and its geometry and texture become clearer.
 
 <figure>
   <img src="images/2_6_gif.gif" alt="GIF of my NeRF rendering novel views of the Nailong scene." style="max-width: 100%; height: auto;">
-  <figcaption>GIF of the NeRF rendering novel views of my own Nailong scene.</figcaption>
+  <figcaption>GIF of the NeRF rendering novel views of my Nailong scene</figcaption>
 </figure>
 
 <table style="width:100%; text-align:center;">
@@ -720,7 +691,7 @@ Lego model becomes less noisy, and its geometry and texture become clearer.
 <h3>Problems Faced</h3>
 <p>
   Even though the training curves look reasonable, the final render is still
-  quite abstract. There are several reasons for this:
+  quite abstract. There could be several reasons for this:
 </p>
 <ul>
   <li>
@@ -762,8 +733,8 @@ Lego model becomes less noisy, and its geometry and texture become clearer.
 
 <h3>Takeaways</h3>
 <p>
-  Even though my NeRF of the Nailong toy did not reconstruct a crisp 3D model,
-  the experiment was still valuable. I implemented the full pipeline
+  Even though my NeRF of the Nailong toy did not reconstruct a crisp 3D model, I'm grateful for this project and
+  the process was still very valuable. I implemented the full pipeline
   end-to-end, from camera calibration and pose estimation to dataset
   creation, NeRF training, and novel-view rendering. The results highlight how
   sensitive NeRFs are to camera coverage, pose accuracy, and clean, consistent
